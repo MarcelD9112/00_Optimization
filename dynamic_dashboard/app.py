@@ -1,41 +1,48 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
+from pulp import LpMaximize, LpProblem, LpVariable, value
 
-# Title and File Upload
-st.title("Dynamic Data Visualization Dashboard")
-st.write("Upload an Excel file to dynamically visualize your data.")
+# Streamlit App Title
+st.title("Linear Programming Optimization Dashboard")
+st.write("This app demonstrates solving a simple linear programming model using PuLP.")
 
-# Upload Excel file
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx", "xls"])
-if uploaded_file:
-    try:
-        # Load the data
-        df = pd.read_excel(uploaded_file)
-        st.write("### Data Preview")
-        st.dataframe(df)
+# Sidebar Inputs for Constraints
+st.sidebar.header("Define Your Model")
+a1 = st.sidebar.number_input("Constraint 1 Coefficient for x1 (e.g., 2)", value=2)
+a2 = st.sidebar.number_input("Constraint 1 Coefficient for x2 (e.g., 1)", value=1)
+b1 = st.sidebar.number_input("Constraint 1 RHS (e.g., 20)", value=20)
 
-        # Visualization options
-        st.write("### Visualization Options")
-        chart_type = st.selectbox("Select Chart Type", ["Bar", "Line", "Scatter", "Pie"])
-        x_axis = st.selectbox("Select X-axis", df.columns)
-        y_axis = st.selectbox("Select Y-axis", df.columns if chart_type != "Pie" else ["None"])
+c1 = st.sidebar.number_input("Constraint 2 Coefficient for x1 (e.g., 4)", value=4)
+c2 = st.sidebar.number_input("Constraint 2 Coefficient for x2 (e.g., 3)", value=3)
+b2 = st.sidebar.number_input("Constraint 2 RHS (e.g., 36)", value=36)
 
-        # Generate chart based on user selection
-        st.write("### Generated Chart")
-        if chart_type == "Bar":
-            fig = px.bar(df, x=x_axis, y=y_axis, title="Bar Chart")
-        elif chart_type == "Line":
-            fig = px.line(df, x=x_axis, y=y_axis, title="Line Chart")
-        elif chart_type == "Scatter":
-            fig = px.scatter(df, x=x_axis, y=y_axis, title="Scatter Plot")
-        elif chart_type == "Pie":
-            fig = px.pie(df, names=x_axis, title="Pie Chart")
+# Button to Solve the Model
+if st.button("Solve Optimization Problem"):
+    # Create a linear programming model
+    model = LpProblem(name="linear-program", sense=LpMaximize)
 
-        st.plotly_chart(fig)
+    # Decision variables
+    x1 = LpVariable(name="x1", lowBound=0)
+    x2 = LpVariable(name="x2", lowBound=0)
 
-    except Exception as e:
-        st.error(f"Error loading file: {e}")
+    # Objective function
+    model += 40 * x1 + 30 * x2, "Objective"
 
-else:
-    st.write("Upload an Excel file to get started.")
+    # Constraints
+    model += a1 * x1 + a2 * x2 <= b1, "Constraint 1"
+    model += c1 * x1 + c2 * x2 <= b2, "Constraint 2"
+
+    # Solve the model
+    status = model.solve()
+
+    # Display results
+    if status == 1:  # Optimal solution found
+        st.success("Optimization successful!")
+        st.write(f"### Results:")
+        st.write(f"**Optimal value of Objective Function (Z): {value(model.objective)}**")
+        st.write(f"**Value of x1: {x1.varValue}**")
+        st.write(f"**Value of x2: {x2.varValue}**")
+    else:
+        st.error("No optimal solution found!")
+
+# Instructions
+st.write("Modify the coefficients and constraints in the sidebar, then click 'Solve Optimization Problem' to find the solution.")

@@ -5,6 +5,15 @@ from pyomo.environ import ConcreteModel, Var, Objective, Constraint, SolverFacto
 st.title("Linear Programming Optimization Dashboard with Pyomo")
 st.write("This app demonstrates solving a linear programming model using Pyomo and an open-source solver.")
 
+# Add a button to check solver availability
+if st.button("Check CBC Solver Availability"):
+    cbc_solver = SolverFactory('cbc')
+    if cbc_solver.available():
+        st.success("CBC Solver is available!")
+    else:
+        st.error("CBC Solver is NOT available. Please install or configure it.")
+
+
 # Sidebar Inputs for Constraints
 st.sidebar.header("Define Your Model")
 a1 = st.sidebar.number_input("Constraint 1 Coefficient for x1 (e.g., 2)", value=2)

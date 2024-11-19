@@ -1,2 +1,2 @@
-pulp==2.7.0
+pyomo==6.8.2
 streamlit==1.40.0

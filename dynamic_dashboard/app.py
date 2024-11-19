@@ -1,9 +1,9 @@
 import streamlit as st
-from pulp import LpMaximize, LpProblem, LpVariable, value
+from pyomo.environ import ConcreteModel, Var, Objective, Constraint, SolverFactory, NonNegativeReals, maximize
 
 # Streamlit App Title
-st.title("Linear Programming Optimization Dashboard")
-st.write("This app demonstrates solving a simple linear programming model using PuLP.")
+st.title("Linear Programming Optimization Dashboard with Pyomo")
+st.write("This app demonstrates solving a linear programming model using Pyomo and an open-source solver.")
 
 # Sidebar Inputs for Constraints
 st.sidebar.header("Define Your Model")
@@ -17,32 +17,35 @@ b2 = st.sidebar.number_input("Constraint 2 RHS (e.g., 36)", value=36)
 
 # Button to Solve the Model
 if st.button("Solve Optimization Problem"):
-    # Create a linear programming model
-    model = LpProblem(name="linear-program", sense=LpMaximize)
+    # Create the Pyomo model
+    model = ConcreteModel()
 
     # Decision variables
-    x1 = LpVariable(name="x1", lowBound=0)
-    x2 = LpVariable(name="x2", lowBound=0)
+    model.x1 = Var(domain=NonNegativeReals)
+    model.x2 = Var(domain=NonNegativeReals)
 
     # Objective function
-    model += 40 * x1 + 30 * x2, "Objective"
+    model.obj = Objective(expr=40 * model.x1 + 30 * model.x2, sense=maximize)
 
     # Constraints
-    model += a1 * x1 + a2 * x2 <= b1, "Constraint 1"
-    model += c1 * x1 + c2 * x2 <= b2, "Constraint 2"
+    model.con1 = Constraint(expr=a1 * model.x1 + a2 * model.x2 <= b1)
+    model.con2 = Constraint(expr=c1 * model.x1 + c2 * model.x2 <= b2)
 
     # Solve the model
-    status = model.solve()
+    solver = SolverFactory('cbc')  # Use GLPK solver (you can install it using your package manager, e.g., `brew install glpk`)
+    result = solver.solve(model, tee=False)
 
     # Display results
-    if status == 1:  # Optimal solution found
+    if result.solver.status == 'ok' and result.solver.termination_condition == 'optimal':
         st.success("Optimization successful!")
         st.write(f"### Results:")
-        st.write(f"**Optimal value of Objective Function (Z): {value(model.objective)}**")
-        st.write(f"**Value of x1: {x1.varValue}**")
-        st.write(f"**Value of x2: {x2.varValue}**")
+        st.write(f"**Optimal value of Objective Function (Z): {model.obj():.2f}**")
+        st.write(f"**Value of x1: {model.x1():.2f}**")
+        st.write(f"**Value of x2: {model.x2():.2f}**")
     else:
         st.error("No optimal solution found!")
+        st.write(f"Solver Status: {result.solver.status}")
+        st.write(f"Termination Condition: {result.solver.termination_condition}")
 
 # Instructions
 st.write("Modify the coefficients and constraints in the sidebar, then click 'Solve Optimization Problem' to find the solution.")
